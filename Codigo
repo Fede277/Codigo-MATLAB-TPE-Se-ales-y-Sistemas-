@@ -1,0 +1,540 @@
+% Graficar la señal de audio “InASentimentalMood.wav” etiquetando
+% adecuadamente los ejes. Extraiga y grafique fragmentos de notas musicales
+% correspondientes a distintos instrumentos. Calcule la frecuencia fundamental
+% de los mismos y trate de identificar a que notas corresponden
+
+close all;
+clear;
+tic;
+
+
+arch_audio='InASentimentalMood.wav';
+info=audioinfo(arch_audio)
+
+[y, fm]=audioread(arch_audio);
+y= y/(max(y)-min(y));           % Se normaliza la amplitud pico a pico
+n=length(y);                    % Se extraen la cantidad de muestras
+x=(0:1/fm:(n-1)/fm)';           % Se asigna el eje X a las muestras
+%cancion=audioplayer(y, fm);
+%play(cancion);
+
+
+figure();
+plot(x,y, 'linewidth', 1);
+grid minor;
+A=min(y);
+B=max(y);
+LEYENDA1=sprintf('Audio Completo - y[n]');
+legend(LEYENDA1,'Location','NorthEast');
+title('Audio Completo');
+xlabel('Tiempo [s]');
+ylabel('Amplitud');
+xlim ([0 (n-1)/fm]);
+ylim ([A B+0.15]);
+print ('1_Cancion_completa','-djpeg');
+
+figure();
+plot(x,y, 'linewidth', 1);
+grid minor;
+A=min(y);
+B=max(y);
+LEYENDA1=sprintf('Solo Piano');
+legend(LEYENDA1,'Location','NorthWest');
+title('Amplitud vs Tiempo');
+xlabel('Tiempo [s]');
+ylabel('Amplitud');
+xlim ([0 12]);
+ylim ([A B+0.5]);
+axes('position',[.65 .67 .25 .25])
+box on 
+plot(x,y, 'linewidth', 1);
+line ([0 0], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+line ([12 12], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+axis tight
+xlim ([0 44.5]);
+print ('2_Inicio_piano','-djpeg');
+
+
+%Piano
+%Ubicación, ventana y frecuencias de la nota "1" 
+T1_t(1)=1.10; %Ubicación
+T2_t(1)=1.80;
+T1(1)=1.15;  %Ventana
+T2(1)=1.20;
+F1(1)=1.1587; %Picos consecutivos
+F2(1)=1.1626;
+
+% Ubicación, ventana y frecuencias de la nota "2"
+T1_t(2)=1.81; %Ubicación
+T2_t(2)=2.41;
+T1(2)=1.86;   %Ventana
+T2(2)=1.91;
+F1(2)=1.8712; %Picos consecutivos
+F2(2)=1.8745;
+
+% Ubicación, ventana y frecuencias de la nota "3"
+T1_t(3)=2.42; %Ubicación
+T2_t(3)=3.06;
+T1(3)=2.47;  %Ventana
+T2(3)=2.52;
+F1(3)=2.4810; %Picos consecutivos
+F2(3)=2.4821;
+
+% Ubicación, ventana y frecuencias de la nota "4"
+T1_t(4)=3.08; %Ubicación
+T2_t(4)=4.05;
+T1(4)=3.40;   %Ventana
+T2(4)=3.45;
+F1(4)=3.41075; %Picos consecutivos
+F2(4)=3.41371;
+
+% Ubicación, ventana y frecuencias de la nota "5"
+T1_t(5)=4.06; %Ubicación
+T2_t(5)=4.87;
+T1(5)=4.28;   %Ventana
+T2(5)=4.33;
+F1(5)=4.28933; %Picos consecutivos
+F2(5)=4.29300;
+
+
+% Graficos de cada Nota
+for i=1:5
+    figure();
+    indexOfInterest(i,:) = (x > T1(i)) & (x < T2(i));
+    plot(x(indexOfInterest(i,:)),y(indexOfInterest(i,:)), 'linewidth', 1);
+    grid minor;
+    A=min(y(indexOfInterest(i,:)));
+    B=max(y(indexOfInterest(i,:)))+0.9*max(y(indexOfInterest(i,:)));
+    line ([F1(i) F1(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    line ([F2(i) F2(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    periodo(i)=(F2(i)-F1(i))*1000;
+    frec(i)=1000/periodo(i);
+    LEYENDA1=sprintf('Nota: %d\nFrecuencia=%3.2f Hz\nPeriodo=%3.2f ms' , i, frec(i), periodo(i));
+    legend(LEYENDA1,'Location','NorthWest');
+    LEYENDA1=sprintf('Señal Piano Nota %d', i);
+    title(LEYENDA1);
+    ylabel('Amplitud');
+    xlim ([min(x(indexOfInterest(i,:))) max(x(indexOfInterest(i,:)))]);
+    ylim ([A B]);
+    axes('position',[.65 .67 .25 .25])
+    box on 
+    indexOfInterest(i,:) = (x > T1_t(i)) & (x < T2_t(i));
+    plot(x(indexOfInterest(i,:)),y(indexOfInterest(i,:)));
+    line ([T1(i) T1(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    line ([T2(i) T2(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    axis tight
+    LEYENDA1=sprintf('Grafico_Piano_Nota_%d', i);
+    print (LEYENDA1,'-djpeg');
+    
+    %Gráficos de la composición armónica
+    VentanaFFT = (max(x(indexOfInterest(i,:))) - min(x(indexOfInterest(i,:))))*fm;
+    j=1;
+    while VentanaFFT > (2^j)
+        j=j+1;
+    end
+    VentanaFFT = 2^(j-1);
+    Y = abs(fft(y(indexOfInterest(i,:)),VentanaFFT));
+    Y = fftshift(Y);
+    Frec = [-VentanaFFT/2 : VentanaFFT/2 - 1]/(VentanaFFT*1/fm);
+    
+    figure();
+    bar(Frec,Y);
+    grid minor;
+    LEYENDA1=sprintf('Espectro en frecuencia: Piano Nota %d', i);
+    title(LEYENDA1);
+    xlabel('Frecuencia [Hz]');
+    ylabel('Amplitud');
+    LEYENDA1=sprintf('Nota: %d', i);
+    legend(LEYENDA1,'Location','NorthEast');
+    xlim ([0 4*frec(i)]); % 4*frec(i)
+    ylim ([0 max(Y)]);
+    LEYENDA1=sprintf('FFT_Piano_Nota_%d', i);
+    print (LEYENDA1,'-djpeg');
+
+    % Parámetros para el Espectrograma
+    ventana = 2048;  % Tamaño de la ventana (banda angosta)
+    overlap = ventana/8;  % Solapamiento
+    nfft = 8192;    % Número de puntos FFT
+
+    %Espectrograma de cada Nota
+    figure;
+    hold on;
+    spectrogram(y(indexOfInterest(i,:)), ventana, overlap, nfft, fm, 'yaxis');
+    ylim([0 8*frec(i)/1000]);
+    t_start = T1_t(i);
+    t_end = T2_t(i);
+    t_interval = linspace(t_start, t_end, 6);
+    xticklabels(string(round(t_interval, 2)));
+    xlabel('Tiempo [s]');
+    ylabel('Frecuencia [kHz]');
+    LEYENDA1=sprintf('Espectrograma Piano: Nota %d', i);
+    title(LEYENDA1);
+    hold off;
+    LEYENDA1=sprintf('Espectrograma_Piano_Nota_%d', i');
+    print (LEYENDA1,'-djpeg');
+
+end
+
+    % Parámetros para el Espectrograma completo piano
+    indexOfInterest_piano = (x > T1_t(1)) & (x < T2_t(5));
+    ventana = 2048;  % Tamaño de la ventana (banda angosta)
+    overlap = ventana/8;  % Solapamiento
+    nfft = 8192;    % Número de puntos FFT
+    figure;
+    hold on;
+    spectrogram(y(indexOfInterest_piano), ventana, overlap, nfft, fm, 'yaxis');
+    ylim([0 8*frec(i)/1000]);
+    t_start = T1_t(1);
+    t_end = T2_t(5);
+    t_interval = linspace(t_start, t_end, 6);
+    xticklabels(string(round(t_interval, 2)));
+    xlabel('Tiempo [s]');
+    ylabel('Frecuencia [kHz]');
+    LEYENDA1=sprintf('Espectrograma Piano Completo');
+    title(LEYENDA1);
+    hold off;
+    LEYENDA1=sprintf('Espectrograma_Piano_Completo');
+    print (LEYENDA1,'-djpeg');
+
+
+figure();
+plot(x,y, 'linewidth', 1);
+grid minor;
+A=min(y);
+B=max(y);
+LEYENDA1=sprintf('Audio Completo - y[n]');
+legend(LEYENDA1,'Location','NorthWest');
+title('Amplitud vs Tiempo');
+xlabel('Tiempo [s]');
+ylabel('Amplitud');
+xlim ([39 44.5]);
+ylim ([A B+0.5]);
+axes('position',[.65 .67 .25 .25])
+box on 
+plot(x,y, 'linewidth', 1);
+line ([39 39], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+line ([44.4 44.4], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+axis tight
+xlim ([0 44.5]);
+print ('3_Inicio_saxo','-djpeg');
+
+
+%Saxo
+%Ubicación, ventana y frecuencias de la nota "1" 
+T1_t(6)=40.00; %Ubicación
+T2_t(6)=40.16;
+T1(6)=40.04;  %Ventana
+T2(6)=40.09;
+F1(6)=40.0516; %Picos consecutivos
+F2(6)=40.0548;
+
+% Ubicación, ventana y frecuencias de la nota "2"
+T1_t(7)=40.16; %Ubicación
+T2_t(7)=40.60;
+T1(7)=40.20;   %Ventana
+T2(7)=40.25;
+F1(7)=40.2144; %Picos consecutivos
+F2(7)=40.2175;
+
+% Ubicación, ventana y frecuencias de la nota "3"
+T1_t(8)=40.60; %Ubicación
+T2_t(8)=40.94;
+T1(8)=40.65;  %Ventana
+T2(8)=40.70;
+F1(8)=40.6633; %Picos consecutivos
+F2(8)=40.6658;
+
+% Ubicación, ventana y frecuencias de la nota "4"
+T1_t(9)=40.94; %Ubicación
+T2_t(9)=41.42;
+T1(9)=41.10;   %Ventana
+T2(9)=41.15;
+F1(9)=41.1134; %Picos consecutivos
+F2(9)=41.1156;
+
+% Ubicación, ventana y frecuencias de la nota "5"
+T1_t(10)=41.42; %Ubicación
+T2_t(10)=41.80;
+T1(10)=41.50;   %Ventana
+T2(10)=41.55;
+F1(10)=41.5174; %Picos consecutivos
+F2(10)=41.5192;
+
+
+% Graficos de cada Nota
+for i=6:10
+    figure();
+    indexOfInterest(i,:) = (x > T1(i)) & (x < T2(i));
+    plot(x(indexOfInterest(i,:)),y(indexOfInterest(i,:)), 'linewidth', 1);
+    grid minor;
+    A=min(y(indexOfInterest(i,:)));
+    B=max(y(indexOfInterest(i,:)))+0.9*max(y(indexOfInterest(i,:)));
+    line ([F1(i) F1(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    line ([F2(i) F2(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    periodo(i)=(F2(i)-F1(i))*1000;
+    frec(i)=1000/periodo(i);
+    LEYENDA1=sprintf('Nota: %d\nFrecuencia=%3.2f Hz\nPeriodo=%3.2f ms' , i, frec(i), periodo(i));
+    legend(LEYENDA1,'Location','NorthWest');
+    LEYENDA1=sprintf('Señal: Saxo Nota %d', i);
+    title(LEYENDA1);
+    ylabel('Amplitud');
+    xlim ([min(x(indexOfInterest(i,:))) max(x(indexOfInterest(i,:)))]);
+    ylim ([A B]);
+    LEYENDA1=sprintf('Grafico_Saxo_Nota_%d', i);
+    axes('position',[.65 .67 .25 .25])
+    box on 
+    indexOfInterest(i,:) = (x > T1_t(i)) & (x < T2_t(i));
+    plot(x(indexOfInterest(i,:)),y(indexOfInterest(i,:)));
+    line ([T1(i) T1(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    line ([T2(i) T2(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    axis tight
+    print (LEYENDA1,'-djpeg');
+
+    
+    indexOfInterest(i,:) = (x > T1_t(i)) & (x < T2_t(i));
+    VentanaFFT = (max(x(indexOfInterest(i,:))) - min(x(indexOfInterest(i,:))))*fm;
+    j=1;
+    while VentanaFFT > (2^j)
+        j=j+1;
+    end
+    VentanaFFT = 2^(j-1);
+    Y = abs(fft(y(indexOfInterest(i,:)),VentanaFFT));
+    Y = fftshift(Y);
+    Frec = [-VentanaFFT/2 : VentanaFFT/2 - 1]/(VentanaFFT*1/fm);
+    
+    figure();
+    bar(Frec,Y);
+    grid minor;
+    LEYENDA1=sprintf('Espectro en frecuencia: Saxo Nota %d', i);
+    title(LEYENDA1);
+    xlabel('Frecuencia [Hz]');
+    ylabel('Amplitud');
+    LEYENDA1=sprintf('Nota: %d', i);
+    legend(LEYENDA1,'Location','NorthEast');
+    xlim ([0 4*frec(i)]); % 4*frec(i)
+    ylim ([0 max(Y)]);
+    LEYENDA1=sprintf('FFT_Saxo_Nota_%d', i);
+    print (LEYENDA1,'-djpeg');
+
+    %Espectrograma de cada Nota del Saxo 
+    figure;
+    hold on;
+    spectrogram(y(indexOfInterest(i,:)), ventana, overlap, nfft, fm, 'yaxis');
+    ylim([0 8*frec(i)/1000]);
+    t_start = T1_t(i);
+    t_end = T2_t(i);
+    t_interval = linspace(t_start, t_end, 6);
+    xticklabels(string(round(t_interval, 2)));
+    xlabel('Tiempo [s]');
+    ylabel('Frecuencia [kHz]');
+    LEYENDA1=sprintf('Espectrograma Saxo: Nota %d', i);
+    title(LEYENDA1);
+    hold off;
+    LEYENDA1=sprintf('Espectrograma_Saxo_Nota_%d', i');
+    print (LEYENDA1,'-djpeg');
+
+end
+
+
+% Parámetros para el Espectrograma completo Saxo
+indexOfInterest_saxo = (x > T1_t(6)) & (x < T2_t(10));
+ventana = 2048;  % Tamaño de la ventana (banda angosta)
+overlap = ventana/8;  % Solapamiento
+nfft = 8192;    % Número de puntos FFT
+figure;
+hold on;
+spectrogram(y(indexOfInterest_saxo), ventana, overlap, nfft, fm, 'yaxis');
+ylim([0 8*frec(i)/1000]);
+t_start = T1_t(6);
+t_end = T2_t(10);
+t_interval = linspace(t_start, t_end, 6);
+xticklabels(string(round(t_interval, 2)));
+xlabel('Tiempo [s]');
+ylabel('Frecuencia [kHz]');
+LEYENDA1=sprintf('Espectrograma Saxo Completo');
+title(LEYENDA1);
+hold off;
+LEYENDA1=sprintf('Espectrograma_Saxo_Completo');
+print (LEYENDA1,'-djpeg');
+
+% Parámetros para el Espectrograma
+ventana = 8192;  % Tamaño de la ventana (banda angosta)
+overlap = ventana/8;  % Solapamiento
+nfft = 8192*2;    % Número de puntos FFT
+
+% Punto 5a: Espectrograma de banda angosta
+figure;
+spectrogram(y, ventana, overlap, nfft, fm, 'yaxis');
+title('Espectrograma Audio Completo');
+xlim ([0 (n-1)/fm]);
+ylim([0, 2.0]);
+xlabel('Tiempo [s]');
+ylabel('Frecuencia [Hz]');
+yticks([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]); % Etiquetas del eje Y en Hz
+yticklabels({'200', '400', '600', '800', '1000', '1200', '1400', '1600', '1800', '2000'});
+LEYENDA1=sprintf('Espectrograma Audio Completo');
+print (LEYENDA1,'-djpeg');
+%}
+
+% ---------------------------------- Archivo Zombie --------------------------------
+
+arch_audio='Zombie.wav';
+info=audioinfo(arch_audio)
+
+[y, fm]=audioread(arch_audio);
+y= y/(max(y)-min(y));           % Se normaliza la amplitud pico a pico
+n=length(y);                    % Se extraen la cantidad de muestras
+x=(0:1/fm:(n-1)/fm)';           % Se asigna el eje X a las muestras
+%cancion=audioplayer(y, fm);
+%play(cancion);
+
+
+figure();
+plot(x,y, 'linewidth', 1);
+grid minor;
+A=min(y);
+B=max(y);
+LEYENDA1=sprintf('Zombie Completo - y[n]');
+legend(LEYENDA1,'Location','NorthEast');
+title('Audio Completo');
+xlabel('Tiempo [s]');
+ylabel('Amplitud');
+xlim ([0 (n-1)/fm]);
+ylim ([A B+0.15]);
+print ('4_Zombie_completo','-djpeg');
+
+
+%Zombie
+%Ubicación, ventana y frecuencias de los platillos "portadora" 
+T1_t(11)=10.50; %Ubicación
+T2_t(11)=10.75;
+T1(11)=10.55;  %Ventana
+T2(11)=10.70;
+F1(11)=10.5904; %Picos consecutivos
+F2(11)=10.5968;
+
+% Ubicación, ventana y frecuencias de los platillos "alta frecuencia"
+T1_t(12)=10.65; %Ubicación
+T2_t(12)=10.67;
+T1(12)=10.656;   %Ventana
+T2(12)=10.659;
+F1(12)=10.6579583333; %Picos consecutivos
+F2(12)=10.6581041666;
+
+% Ubicación, ventana y frecuencias del redoblante fundamental
+T1_t(13)=12.54; %Ubicación
+T2_t(13)=13.16;
+T1(13)=12.73;   %Ventana
+T2(13)=12.76;
+F1(13)=12.7359; %Picos consecutivos
+F2(13)=12.7410;
+
+% Ubicación, ventana y frecuencias del redoblante
+T1_t(14)=12.65; %Ubicación
+T2_t(14)=12.67;
+T1(14)=12.655;   %Ventana
+T2(14)=12.661;
+F1(14)=12.657875; %Picos consecutivos
+F2(14)=12.658021;
+
+
+% Graficos de cada Nota
+for i=11:14
+    figure();
+    indexOfInterest_2(i,:) = (x > T1(i)) & (x < T2(i));
+    plot(x(indexOfInterest_2(i,:)),y(indexOfInterest_2(i,:)), 'linewidth', 1);
+    grid minor;
+    A=min(y(indexOfInterest_2(i,:)));
+    B=max(y(indexOfInterest_2(i,:)))+0.9*max(y(indexOfInterest_2(i,:)));
+    line ([F1(i) F1(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    line ([F2(i) F2(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    periodo(i)=(F2(i)-F1(i))*1000;
+    frec(i)=1000/periodo(i);
+    LEYENDA1=sprintf('Nota: %d\nFrecuencia=%3.2f Hz\nPeriodo=%3.2f ms' , i, frec(i), periodo(i));
+    legend(LEYENDA1,'Location','NorthWest');
+    LEYENDA1=sprintf('Señal: Batería %d', i);
+    title(LEYENDA1);
+    ylabel('Amplitud');
+    xlim ([min(x(indexOfInterest_2(i,:))) max(x(indexOfInterest_2(i,:)))]);
+    ylim ([A B]);
+    LEYENDA1=sprintf('Grafico_Zombie_Nota_%d', i);
+    axes('position',[.65 .67 .25 .25])
+    box on 
+    indexOfInterest_2(i,:) = (x > T1_t(i)) & (x < T2_t(i));
+    plot(x(indexOfInterest_2(i,:)),y(indexOfInterest_2(i,:)));
+    line ([T1(i) T1(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    line ([T2(i) T2(i)], [A B], 'linestyle', '--', 'color', 'r', 'linewidth', 1);
+    axis tight
+    print (LEYENDA1,'-djpeg');
+
+    indexOfInterest_2(i,:) = (x > T1_t(i)) & (x < T2_t(i));
+    VentanaFFT = (max(x(indexOfInterest_2(i,:))) - min(x(indexOfInterest_2(i,:))))*fm;
+    j=1;
+    while VentanaFFT > (2^j)
+        j=j+1;
+    end
+    VentanaFFT = 2^(j-1);
+    Y = abs(fft(y(indexOfInterest_2(i,:)),VentanaFFT));
+    Y = fftshift(Y);
+    Frec = [-VentanaFFT/2 : VentanaFFT/2 - 1]/(VentanaFFT*1/fm);
+    
+    figure();
+    bar(Frec,Y);
+    grid minor;
+    LEYENDA1=sprintf('Espectro en frecuencia: Batería %d', i);
+    title(LEYENDA1);
+    xlabel('Frecuencia [Hz]');
+    ylabel('Amplitud');
+    LEYENDA1=sprintf('Nota: %d', i);
+    legend(LEYENDA1,'Location','NorthEast');
+    xlim ([0 4*frec(i)]); % 4*frec(i)
+    ylim ([0 max(Y)]);
+    LEYENDA1=sprintf('FFT_Zombie_Nota_%d', i);
+    print (LEYENDA1,'-djpeg');
+    
+    
+end
+
+
+% Ubicación, ventana y frecuencias del redoblante
+T1_t(15)=14; %Ubicación
+T2_t(15)=16;
+indexOfInterest_Voz = (x > T1_t(15)) & (x < T2_t(15));
+% Parámetros para el Espectrograma Sector de Voz
+ventana = 4096;  % Tamaño de la ventana (banda angosta)
+overlap = ventana/16;  % Solapamiento
+nfft = 8192*2;    % Número de puntos FFT
+
+figure;
+hold on;
+spectrogram(y(indexOfInterest_Voz), ventana, overlap, nfft, fm, 'yaxis');
+ylim([0 1]);
+t_start = T1_t(15);
+t_end = T2_t(15);
+t_interval = linspace(t_start, t_end, 6);
+xticklabels(string(round(t_interval, 2)));
+xlabel('Tiempo [s]');
+ylabel('Frecuencia [kHz]');
+LEYENDA1=sprintf('Espectrograma Parte Canto');
+title(LEYENDA1);
+hold off;
+LEYENDA1=sprintf('Espectrograma_Zombie_Parte_Canto');
+print (LEYENDA1,'-djpeg');
+
+% Parámetros para el Espectrograma
+ventana = 8192;  % Tamaño de la ventana (banda angosta)
+overlap = ventana/8;  % Solapamiento
+nfft = 8192;    % Número de puntos FFT
+
+% Punto 5a: Espectrograma de banda angosta
+figure;
+spectrogram(y, ventana, overlap, nfft, fm, 'yaxis');
+title('Espectrograma de Banda Angosta');
+xlim ([0 (n-1)/fm]);
+ylim([0, 2.0]);
+xlabel('Tiempo [s]');
+ylabel('Frecuencia [Hz]');
+yticks([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]); % Etiquetas del eje Y en Hz
+yticklabels({'200', '400', '600', '800', '1000', '1200', '1400', '1600', '1800', '2000'});
+LEYENDA1=sprintf('Espectrograma_Zombie_Completo');
+print (LEYENDA1,'-djpeg');
